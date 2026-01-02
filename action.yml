@@ -112,12 +112,13 @@ inputs:
     required: false
   mill-version:
     description: |
-      Mill version to install. Take into account this will
-      just affect the global `mill` executable. Scala 
-      Steward will still respect the version specified in
-      your repository while updating it.
+      Deprecated. This input is no longer used.
+      Scala Steward will automatically use the Mill version
+      specified in each repository (via .mill-version file
+      or build configuration).
     default: "1.0.6"
     required: false
+    deprecated: true
   other-args:
     description: |
       Other Scala Steward arguments not yet supported by

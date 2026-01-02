@@ -248,12 +248,11 @@ When it launches it will send PR to update all the repos selected in step (2.2).
     # Default: true
     ignore-opts-files: ''
 
-    # Mill version to install. Take into account this will
-    # just affect the global `mill` executable. Scala 
-    # Steward will still respect the version specified in
-    # your repository while updating it.
+    # Mill version to install. Deprecated - this input is no longer used.
+    # Scala Steward will automatically use the Mill version specified in
+    # each repository (via .mill-version file or build configuration).
     #
-    # Default: 1.0.6
+    # Default: 1.0.6 (ignored)
     mill-version: ''
 
     # Other Scala Steward arguments not yet supported by

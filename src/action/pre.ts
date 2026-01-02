@@ -9,8 +9,6 @@ import * as mill from '../modules/mill'
  *
  * - Check connection with Maven Central
  * - Install Coursier
- * - Install Scalafmt
- * - Install Scalafix
  * - Install Mill
  */
 async function run(): Promise<void> {

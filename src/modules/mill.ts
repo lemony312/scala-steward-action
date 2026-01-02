@@ -1,5 +1,6 @@
 import * as os from 'os'
 import * as path from 'path'
+import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as io from '@actions/io'
 import * as tc from '@actions/tool-cache'
@@ -12,7 +13,13 @@ import * as exec from '@actions/exec'
  */
 export async function install(): Promise<void> {
   try {
-    const millVersion = core.getInput('mill-version')
+    // Mill-version input is deprecated - detect version from repository instead
+    const millVersion = detectMillVersion()
+
+    if (!millVersion) {
+      core.debug('No Mill version detected, skipping Mill installation')
+      return
+    }
 
     const cachedPath = tc.find('mill', millVersion)
 
@@ -31,12 +38,85 @@ export async function install(): Promise<void> {
       await exec.exec('chmod', ['+x', mill], {silent: true, ignoreReturnCode: true})
 
       await tc.cacheFile(mill, 'mill', 'mill', millVersion)
+      core.addPath(binary)
     }
 
     core.info(`✓ Mill installed, version: ${millVersion}`)
   } catch (error: unknown) {
     core.error((error as Error).message)
     throw new Error('Unable to install Mill')
+  }
+}
+
+/**
+ * Detects Mill version from repository configuration files.
+ */
+export function detectMillVersion(): string | undefined {
+  // Check .mill-version
+  if (fileExists('.mill-version')) {
+    return readFirstLine('.mill-version')
+  }
+
+  // Check .config/mill-version
+  if (fileExists('.config/mill-version')) {
+    return readFirstLine('.config/mill-version')
+  }
+
+  // Check build.mill.yaml
+  if (fileExists('build.mill.yaml')) {
+    const version = extractFromYaml('build.mill.yaml', 'mill-version')
+    if (version) {
+      return version
+    }
+  }
+
+  // Check build scripts
+  for (const script of ['build.mill', 'build.mill.scala', 'build.sc']) {
+    if (fileExists(script)) {
+      const version = extractFromScript(script, 'mill-version')
+      if (version) {
+        return version
+      }
+    }
+  }
+
+  return undefined
+}
+
+export function extractFromYaml(filePath: string, key: string): string | undefined {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8')
+    const match = /mill-version:\s*([^\n#]+)/.exec(content)
+    return match?.[1]?.trim()
+  } catch {
+    return undefined
+  }
+}
+
+export function extractFromScript(filePath: string, key: string): string | undefined {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8')
+    const match = /\/\/\s*\|.*mill-version\s*=\s*([^\n#]+)/.exec(content)
+    return match?.[1]?.trim().replaceAll(/['"]|,$/g, '')
+  } catch {
+    return undefined
+  }
+}
+
+export function fileExists(filePath: string): boolean {
+  try {
+    return fs.existsSync(filePath)
+  } catch {
+    return false
+  }
+}
+
+export function readFirstLine(filePath: string): string | undefined {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8')
+    return content.split('\n')[0].trim()
+  } catch {
+    return undefined
   }
 }
 
@@ -48,9 +128,9 @@ export async function remove(): Promise<void> {
 }
 
 /**
-  * It dublicates logic from 'mill' bash bootstrap script.
-  */
-function getDownloadUrl(millVersion: string): string {
+ * It duplicates logic from 'mill' bash bootstrap script.
+ */
+export function getDownloadUrl(millVersion: string): string {
   const artifactSuffix = getArtifactSuffix()
   let millUrl: string
   let downloadExtension: string
@@ -58,19 +138,19 @@ function getDownloadUrl(millVersion: string): string {
   let downloadFromMaven: boolean
 
   if (/^0\.0\.\d+$/.test(millVersion)
-     || /^0\.1\.\d+$/.test(millVersion)
-     || /^0\.2\.\d+$/.test(millVersion)
-     || /^0\.3\.\d+$/.test(millVersion)
-     || /^0\.4\.\d+$/.test(millVersion)) {
+    || /^0\.1\.\d+$/.test(millVersion)
+    || /^0\.2\.\d+$/.test(millVersion)
+    || /^0\.3\.\d+$/.test(millVersion)
+    || /^0\.4\.\d+$/.test(millVersion)) {
     downloadSuffix = ''
     downloadFromMaven = false
   } else if (/^0\.5\.\d+$/.test(millVersion)
-          || /^0\.6\.\d+$/.test(millVersion)
-          || /^0\.7\.\d+$/.test(millVersion)
-          || /^0\.8\.\d+$/.test(millVersion)
-          || /^0\.9\.\d+$/.test(millVersion)
-          || /^0\.10\.\d+$/.test(millVersion)
-          || /^0\.11\.0-M-[A-Za-z\d]+$/.test(millVersion)) {
+    || /^0\.6\.\d+$/.test(millVersion)
+    || /^0\.7\.\d+$/.test(millVersion)
+    || /^0\.8\.\d+$/.test(millVersion)
+    || /^0\.9\.\d+$/.test(millVersion)
+    || /^0\.10\.\d+$/.test(millVersion)
+    || /^0\.11\.0-M-[A-Za-z\d]+$/.test(millVersion)) {
     downloadSuffix = '-assembly'
     downloadFromMaven = false
   } else {
@@ -79,21 +159,21 @@ function getDownloadUrl(millVersion: string): string {
   }
 
   if (millVersion === '0.12.0'
-     || millVersion === '0.12.1'
-     || millVersion === '0.12.2'
-     || millVersion === '0.12.3'
-     || millVersion === '0.12.4'
-     || millVersion === '0.12.5'
-     || millVersion === '0.12.6'
-     || millVersion === '0.12.7'
-     || millVersion === '0.12.8'
-     || millVersion === '0.12.9'
-     || millVersion === '0.12.10'
-     || millVersion === '0.12.11') {
+    || millVersion === '0.12.1'
+    || millVersion === '0.12.2'
+    || millVersion === '0.12.3'
+    || millVersion === '0.12.4'
+    || millVersion === '0.12.5'
+    || millVersion === '0.12.6'
+    || millVersion === '0.12.7'
+    || millVersion === '0.12.8'
+    || millVersion === '0.12.9'
+    || millVersion === '0.12.10'
+    || millVersion === '0.12.11') {
     downloadExtension = 'jar'
-  } else if (/^0\.12\.[A-Za-z\d]+$/.test(millVersion)) { // 0.12.*
+  } else if (/^0\.12\.[A-Za-z\d]+$/.test(millVersion)) {
     downloadExtension = 'exe'
-  } else if (/^0\.\d+\.\d+(-[A-Za-z\d.-]+)?$/.test(millVersion)) { // 0.*
+  } else if (/^0\.\d+\.\d+(-[A-Za-z\d.-]+)?$/.test(millVersion)) {
     downloadExtension = 'jar'
   } else {
     downloadExtension = 'exe'
@@ -103,15 +183,15 @@ function getDownloadUrl(millVersion: string): string {
     millUrl = `https://repo1.maven.org/maven2/com/lihaoyi/mill-dist${artifactSuffix}/${millVersion}/mill-dist${artifactSuffix}-${millVersion}.${downloadExtension}`
   } else {
     const millVersionTag = millVersion.replace(/([^-]+)(-M\d+)?(-.*)?/, '$1$2')
-    millUrl = `https://github.com/lihaoyi/mill/releases/download/${millVersionTag}/${millVersion}${downloadSuffix}`
+    millUrl = `https://github.com/com-lihaoyi/mill/releases/download/${millVersionTag}/${millVersion}${downloadSuffix}`
   }
 
   return millUrl
 }
 
 function getArtifactSuffix(): string {
-  const platform = os.platform() // 'linux', 'darwin', 'win32'
-  const arch = os.arch() // 'x64', 'arm64', etc.
+  const platform = os.platform()
+  const arch = os.arch()
 
   let suffix = ''
 
@@ -128,7 +208,7 @@ function getArtifactSuffix(): string {
   if (suffix === '') {
     core.error('This native mill launcher supports only Linux and macOS.')
     throw new Error('Unable to detect Mill artifact suffix')
-  } else {
-    return suffix
   }
+
+  return suffix
 }
