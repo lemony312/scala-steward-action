@@ -1,6 +1,7 @@
 import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as process from 'process'
 import * as core from '@actions/core'
 import * as io from '@actions/io'
 import * as tc from '@actions/tool-cache'
@@ -17,7 +18,7 @@ export async function install(): Promise<void> {
     const millVersion = detectMillVersion()
 
     if (!millVersion) {
-      core.debug('No Mill version detected, skipping Mill installation')
+      core.debug('No Mill version detected, defaulting to latest')
       return
     }
 
@@ -52,19 +53,21 @@ export async function install(): Promise<void> {
  * Detects Mill version from repository configuration files.
  */
 export function detectMillVersion(): string | undefined {
+  const repoRoot = process.cwd()
+
   // Check .mill-version
-  if (fileExists('.mill-version')) {
-    return readFirstLine('.mill-version')
+  if (fileExists(path.join(repoRoot, '.mill-version'))) {
+    return readFirstLine(path.join(repoRoot, '.mill-version'))
   }
 
   // Check .config/mill-version
-  if (fileExists('.config/mill-version')) {
-    return readFirstLine('.config/mill-version')
+  if (fileExists(path.join(repoRoot, '.config/mill-version'))) {
+    return readFirstLine(path.join(repoRoot, '.config/mill-version'))
   }
 
   // Check build.mill.yaml
-  if (fileExists('build.mill.yaml')) {
-    const version = extractFromYaml('build.mill.yaml', 'mill-version')
+  if (fileExists(path.join(repoRoot, 'build.mill.yaml'))) {
+    const version = extractFromYaml(path.join(repoRoot, 'build.mill.yaml'), 'mill-version')
     if (version) {
       return version
     }
@@ -72,15 +75,17 @@ export function detectMillVersion(): string | undefined {
 
   // Check build scripts
   for (const script of ['build.mill', 'build.mill.scala', 'build.sc']) {
-    if (fileExists(script)) {
-      const version = extractFromScript(script, 'mill-version')
+    const scriptPath = path.join(repoRoot, script)
+    if (fileExists(scriptPath)) {
+      const version = extractFromScript(scriptPath, 'mill-version')
       if (version) {
         return version
       }
     }
   }
 
-  return undefined
+  core.debug('No Mill version detected, defaulting to latest')
+  return '1.1.0-RC3'
 }
 
 export function extractFromYaml(filePath: string, key: string): string | undefined {
