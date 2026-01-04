@@ -102479,7 +102479,210 @@ class Workspace {
     }
 }
 
+;// CONCATENATED MODULE: ./src/modules/mill.ts
+
+
+
+
+
+
+
+
+/**
+ * Installs `Mill` and add its executable to the `PATH`.
+ *
+ * Throws error if the installation fails.
+ */
+async function mill_install() {
+    try {
+        // Mill-version input is deprecated - detect version from repository instead
+        const millVersion = detectMillVersion();
+        if (!millVersion) {
+            return;
+        }
+        const cachedPath = tool_cache.find('mill', millVersion);
+        if (cachedPath) {
+            lib_core.addPath(cachedPath);
+        }
+        else {
+            const millUrl = getDownloadUrl(millVersion);
+            lib_core.debug(`Attempting to install Mill from ${millUrl}`);
+            const binary = external_path_.join(external_os_.homedir(), 'bin');
+            await lib_io.mkdirP(binary);
+            const mill = await tool_cache.downloadTool(millUrl, external_path_.join(binary, 'mill'));
+            await lib_exec.exec('chmod', ['+x', mill], { silent: true, ignoreReturnCode: true });
+            await tool_cache.cacheFile(mill, 'mill', 'mill', millVersion);
+            lib_core.addPath(binary);
+        }
+        lib_core.info(`✓ Mill installed, version: ${millVersion}`);
+    }
+    catch (error) {
+        lib_core.error(error.message);
+        throw new Error('Unable to install Mill');
+    }
+}
+/**
+ * Detects Mill version from repository configuration files.
+ */
+function detectMillVersion() {
+    const repoRoot = external_process_namespaceObject.cwd();
+    // Check .mill-version
+    if (fileExists(external_path_.join(repoRoot, '.mill-version'))) {
+        return readFirstLine(external_path_.join(repoRoot, '.mill-version'));
+    }
+    // Check .config/mill-version
+    if (fileExists(external_path_.join(repoRoot, '.config/mill-version'))) {
+        return readFirstLine(external_path_.join(repoRoot, '.config/mill-version'));
+    }
+    // Check build.mill.yaml
+    if (fileExists(external_path_.join(repoRoot, 'build.mill.yaml'))) {
+        const version = extractFromYaml(external_path_.join(repoRoot, 'build.mill.yaml'), 'mill-version');
+        if (version) {
+            return version;
+        }
+    }
+    // Check build scripts
+    for (const script of ['build.mill', 'build.mill.scala', 'build.sc']) {
+        const scriptPath = external_path_.join(repoRoot, script);
+        if (fileExists(scriptPath)) {
+            const version = extractFromScript(scriptPath, 'mill-version');
+            if (version) {
+                return version;
+            }
+        }
+    }
+    lib_core.debug('No Mill version detected, is this a Mill project?');
+    return undefined;
+}
+function extractFromYaml(filePath, key) {
+    try {
+        const content = external_fs_.readFileSync(filePath, 'utf8');
+        const match = /mill-version:\s*([^\n#]+)/.exec(content);
+        return match?.[1]?.trim();
+    }
+    catch {
+        return undefined;
+    }
+}
+function extractFromScript(filePath, key) {
+    try {
+        const content = external_fs_.readFileSync(filePath, 'utf8');
+        const match = /\/\/\s*\|.*mill-version\s*=\s*([^\n#]+)/.exec(content);
+        return match?.[1]?.trim().replaceAll(/['"]|,$/g, '');
+    }
+    catch {
+        return undefined;
+    }
+}
+function fileExists(filePath) {
+    try {
+        return external_fs_.existsSync(filePath);
+    }
+    catch {
+        return false;
+    }
+}
+function readFirstLine(filePath) {
+    try {
+        const content = external_fs_.readFileSync(filePath, 'utf8');
+        return content.split('\n')[0].trim();
+    }
+    catch {
+        return undefined;
+    }
+}
+/**
+ * Removes Mill binary
+ */
+async function mill_remove() {
+    await io.rmRF(path.join(path.join(os.homedir(), 'bin'), 'mill'));
+}
+/**
+ * It duplicates logic from 'mill' bash bootstrap script.
+ */
+function getDownloadUrl(millVersion) {
+    const artifactSuffix = getArtifactSuffix();
+    let millUrl;
+    let downloadExtension;
+    let downloadSuffix;
+    let downloadFromMaven;
+    if (/^0\.0\.\d+$/.test(millVersion)
+        || /^0\.1\.\d+$/.test(millVersion)
+        || /^0\.2\.\d+$/.test(millVersion)
+        || /^0\.3\.\d+$/.test(millVersion)
+        || /^0\.4\.\d+$/.test(millVersion)) {
+        downloadSuffix = '';
+        downloadFromMaven = false;
+    }
+    else if (/^0\.5\.\d+$/.test(millVersion)
+        || /^0\.6\.\d+$/.test(millVersion)
+        || /^0\.7\.\d+$/.test(millVersion)
+        || /^0\.8\.\d+$/.test(millVersion)
+        || /^0\.9\.\d+$/.test(millVersion)
+        || /^0\.10\.\d+$/.test(millVersion)
+        || /^0\.11\.0-M-[A-Za-z\d]+$/.test(millVersion)) {
+        downloadSuffix = '-assembly';
+        downloadFromMaven = false;
+    }
+    else {
+        downloadSuffix = '-assembly';
+        downloadFromMaven = true;
+    }
+    if (millVersion === '0.12.0'
+        || millVersion === '0.12.1'
+        || millVersion === '0.12.2'
+        || millVersion === '0.12.3'
+        || millVersion === '0.12.4'
+        || millVersion === '0.12.5'
+        || millVersion === '0.12.6'
+        || millVersion === '0.12.7'
+        || millVersion === '0.12.8'
+        || millVersion === '0.12.9'
+        || millVersion === '0.12.10'
+        || millVersion === '0.12.11') {
+        downloadExtension = 'jar';
+    }
+    else if (/^0\.12\.[A-Za-z\d]+$/.test(millVersion)) {
+        downloadExtension = 'exe';
+    }
+    else if (/^0\.\d+\.\d+(-[A-Za-z\d.-]+)?$/.test(millVersion)) {
+        downloadExtension = 'jar';
+    }
+    else {
+        downloadExtension = 'exe';
+    }
+    if (downloadFromMaven) {
+        millUrl = `https://repo1.maven.org/maven2/com/lihaoyi/mill-dist${artifactSuffix}/${millVersion}/mill-dist${artifactSuffix}-${millVersion}.${downloadExtension}`;
+    }
+    else {
+        const millVersionTag = millVersion.replace(/([^-]+)(-M\d+)?(-.*)?/, '$1$2');
+        millUrl = `https://github.com/com-lihaoyi/mill/releases/download/${millVersionTag}/${millVersion}${downloadSuffix}`;
+    }
+    return millUrl;
+}
+function getArtifactSuffix() {
+    const platform = external_os_.platform();
+    const arch = external_os_.arch();
+    let suffix = '';
+    if (platform === 'linux') {
+        suffix = arch === 'arm64'
+            ? '-native-linux-aarch64'
+            : '-native-linux-amd64';
+    }
+    else if (platform === 'darwin') {
+        suffix = arch === 'arm64'
+            ? '-native-mac-aarch64'
+            : '-native-mac-amd64';
+    }
+    if (suffix === '') {
+        lib_core.error('This native mill launcher supports only Linux and macOS.');
+        throw new Error('Unable to detect Mill artifact suffix');
+    }
+    return suffix;
+}
+
 ;// CONCATENATED MODULE: ./src/action/main.ts
+
 
 
 
@@ -102517,6 +102720,7 @@ async function run() {
             .then(async (response) => response ? github.getAppUser(response.data.slug) : github.getAuthUser());
         await workspace.prepare(inputs.steward.repos, gitHubToken, inputs.github.app);
         await workspace.restoreWorkspaceCache();
+        await mill_install();
         if ((external_process_default()).env.RUNNER_DEBUG) {
             lib_core.debug('🐛 Debug mode activated for Scala Steward');
             lib_core.exportVariable('LOG_LEVEL', 'TRACE');

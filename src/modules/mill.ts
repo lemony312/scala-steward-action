@@ -18,7 +18,6 @@ export async function install(): Promise<void> {
     const millVersion = detectMillVersion()
 
     if (!millVersion) {
-      core.debug('No Mill version detected, defaulting to latest')
       return
     }
 

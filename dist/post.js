@@ -90268,7 +90268,6 @@ async function mill_install() {
         // Mill-version input is deprecated - detect version from repository instead
         const millVersion = detectMillVersion();
         if (!millVersion) {
-            core.debug('No Mill version detected, defaulting to latest');
             return;
         }
         const cachedPath = tc.find('mill', millVersion);
