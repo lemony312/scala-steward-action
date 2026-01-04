@@ -84,8 +84,8 @@ export function detectMillVersion(): string | undefined {
     }
   }
 
-  core.debug('No Mill version detected, defaulting to latest')
-  return '1.1.0-RC3'
+  core.debug('No Mill version detected, is this a Mill project?')
+  return undefined
 }
 
 export function extractFromYaml(filePath: string, key: string): string | undefined {
