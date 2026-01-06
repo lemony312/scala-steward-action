@@ -12,16 +12,16 @@ import * as exec from '@actions/exec'
  */
 export async function install(wrapperUrl: string): Promise<void> {
   try {
-    const binDir = path.join(os.homedir(), 'bin')
-    await io.mkdirP(binDir)
+    const binary = path.join(os.homedir(), 'bin')
+    await io.mkdirP(binary)
 
-    const millPath = path.join(binDir, 'mill')
+    const millPath = path.join(binary, 'mill')
 
     core.debug(`Downloading Mill wrapper from ${wrapperUrl}`)
     await tc.downloadTool(wrapperUrl, millPath)
     await exec.exec('chmod', ['+x', millPath], {silent: true, ignoreReturnCode: true})
 
-    core.addPath(binDir)
+    core.addPath(binary)
     core.info('✓ Mill wrapper installed')
   } catch (error: unknown) {
     core.error((error as Error).message)
