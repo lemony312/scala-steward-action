@@ -37,6 +37,7 @@ export async function install(): Promise<void> {
       await exec.exec('chmod', ['+x', mill], {silent: true, ignoreReturnCode: true})
 
       await tc.cacheFile(mill, 'mill', 'mill', millVersion)
+      core.addPath(binary)
     }
 
     core.info(`✓ Mill installed, version: ${millVersion}`)
@@ -130,8 +131,8 @@ export async function remove(): Promise<void> {
 }
 
 /**
-  * It dublicates logic from 'mill' bash bootstrap script.
-  */
+ * It dublicates logic from 'mill' bash bootstrap script.
+ */
 function getDownloadUrl(millVersion: string): string {
   const artifactSuffix = getArtifactSuffix()
   let millUrl: string
