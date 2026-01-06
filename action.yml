@@ -46,6 +46,11 @@ inputs:
       in lines. The default is 16384.
     default: "16384"
     required: false
+  mill-wrapper-url:
+    description: |
+      Url to download the mill wrapper script from.
+    default: https://raw.githubusercontent.com/com-lihaoyi/mill/refs/heads/main/mill
+    required: false
   coursier-cli-url:
     description: |
       Url to download the coursier linux CLI from.
@@ -110,12 +115,6 @@ inputs:
       or `.sbtopts`) when found on repositories or not.
     default: "true"
     required: false
-  mill-version:
-    description: |
-      Mill projects automatically detect the correct version
-    default: ""
-    required: false
-    deprecated: true
   other-args:
     description: |
       Other Scala Steward arguments not yet supported by

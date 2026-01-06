@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import fetch from 'node-fetch'
 import * as coursier from '../modules/coursier'
+import * as mill from '../modules/mill'
 import {HealthCheck} from '../modules/healthcheck'
 
 /**
@@ -18,6 +19,7 @@ async function run(): Promise<void> {
     await healthCheck.mavenCentral()
 
     await coursier.install()
+    await mill.install(core.getInput('mill-wrapper-url'))
   } catch (error: unknown) {
     core.setFailed(` ✕ ${(error as Error).message}`)
   }
