@@ -115,6 +115,12 @@ inputs:
       or `.sbtopts`) when found on repositories or not.
     default: "true"
     required: false
+  mill-version:
+    description: |
+      Mill projects automatically detect the correct version
+    default: ""
+    required: false
+    deprecationMessage: "This input is no longer used and will be removed in a future version."
   other-args:
     description: |
       Other Scala Steward arguments not yet supported by
