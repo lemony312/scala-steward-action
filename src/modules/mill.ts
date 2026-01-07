@@ -6,7 +6,7 @@ import * as tc from '@actions/tool-cache'
 import * as exec from '@actions/exec'
 
 /**
- * Installs Mill wrapper and adds it to PATH.
+ * Installs `Mill` wrapper and add its executable to the `PATH`.
  *
  * Throws error if the installation fails.
  */
