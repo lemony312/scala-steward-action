@@ -49,7 +49,6 @@ inputs:
   mill-wrapper-url:
     description: |
       Url to download the mill wrapper script from.
-    default: https://raw.githubusercontent.com/com-lihaoyi/mill/refs/heads/main/mill
     required: false
   coursier-cli-url:
     description: |

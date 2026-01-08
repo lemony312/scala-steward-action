@@ -1,5 +1,6 @@
 import * as os from 'os'
 import * as path from 'path'
+import {fileURLToPath} from 'url'
 import * as core from '@actions/core'
 import * as io from '@actions/io'
 import * as tc from '@actions/tool-cache'
@@ -8,17 +9,21 @@ import * as exec from '@actions/exec'
 /**
  * Installs `Mill` wrapper and add its executable to the `PATH`.
  *
+ * If wrapperUrl is provided, downloads from that URL.
+ * Otherwise, uses the existing mill binary in the repository.
  * Throws error if the installation fails.
  */
-export async function install(wrapperUrl: string): Promise<void> {
+export async function install(wrapperUrl?: string): Promise<void> {
   try {
     const binary = path.join(os.homedir(), 'bin')
     await io.mkdirP(binary)
 
     const millPath = path.join(binary, 'mill')
+    const source = wrapperUrl
+      ? tc.downloadTool(wrapperUrl, millPath)
+      : io.cp(getBundledMillPath(), millPath)
 
-    core.debug(`Downloading Mill wrapper from ${wrapperUrl}`)
-    await tc.downloadTool(wrapperUrl, millPath)
+    await source
     await exec.exec('chmod', ['+x', millPath], {silent: true, ignoreReturnCode: true})
 
     core.addPath(binary)
@@ -27,6 +32,15 @@ export async function install(wrapperUrl: string): Promise<void> {
     core.error((error as Error).message)
     throw new Error('Unable to install Mill wrapper')
   }
+}
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Gets the path to the bundled mill binary
+ */
+export function getBundledMillPath(): string {
+  return path.resolve(__dirname, '..', '..', 'mill')
 }
 
 /**
